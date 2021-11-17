@@ -47,15 +47,40 @@ router.delete("/:id", async (req, res) => {
 
 
 // get a user
-router.get("/:id", async (req, res) => {
+router.get("/", async (req, res) => {
     try {
-        const user = await User.findById(req.params.id);
+        //running a query on the api route to get  username or userID
+        const userId = req.query.userId;
+        const username = req.query.username;
+
+        const user = userId ? await User.findById(userId) : await User.findOne({username: username});
+        
         //return all user properties except password and updatedAt 
         //create an object and use the spread operator to store other properties
         const {password, updatedAt, ...other} = user._doc;
         res.status(200).json(other);
     } catch (error) {
         res.status(500).json(error);
+    }
+})
+
+//get friends
+router.get("/friends/:userId", async (req, res)=>{
+    try {
+        const user = await User.findById(req.params.userId);
+        const friends =  await Promise.all(
+            user.followers.map(friendId=>{
+                return User.findById(friendId)
+            })
+        )
+        let friendList = [];
+        friends.map((friend)=>{
+            const {_id, username, profilePic} = friend;
+            friendList.push({_id, username, profilePic})
+        });
+        res.status(200).json(friendList);
+    } catch (error) {
+        res.status(500).json(error)
     }
 })
 
